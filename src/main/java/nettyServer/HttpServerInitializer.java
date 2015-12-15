@@ -11,11 +11,11 @@ public class HttpServerInitializer extends ChannelInitializer<SocketChannel> {
 	@Override
 	protected void initChannel(SocketChannel ch) throws Exception {
 		ChannelPipeline pipeline = ch.pipeline();
-		pipeline.addFirst("traffic", new TrafficHandler());
-		pipeline.addLast("serverCodec", new HttpServerCodec());
-		pipeline.addLast("aggregator", new HttpObjectAggregator(Integer.MAX_VALUE));
+		//pipeline.addFirst("traffic", new TrafficHandler());
+		pipeline.addFirst("serverCodec", new HttpServerCodec());
+		pipeline.addLast("aggregator", new HttpObjectAggregator(512 * 1024));
 		
-		pipeline.addLast(new HttpRequestHandler);
+		pipeline.addLast("requestHandler", new HttpRequestHandler());
 		
 	}
 	
