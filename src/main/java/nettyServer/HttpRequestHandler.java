@@ -10,10 +10,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.util.CharsetUtil;
-
-import java.nio.charset.Charset;
 import java.util.concurrent.TimeUnit;
-
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler.Sharable;
@@ -30,45 +27,60 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
 
 		switch(path) {
 			case "/hello": 
-				//System.out.println("Works");
 				helloResponse(ctx);
 				break;
 			case "/redirect":
-				sendRedirectResponse(ctx, splitter.parameters().get("url").get(0));
-				System.out.println(splitter.parameters().get("url").get(0));
-				System.out.println("Works url");
+				String newUri = "http://" + splitter.parameters().get("url").get(0);
+				sendRedirectResponse(ctx, newUri);
 				break;
 			case "/status":
 				System.out.println("Status works");
+				statusResponse(ctx);
 				break;
 			default:
-				System.out.println("default");
+				pageNotFoundResponse(ctx);
 				break;
 		}
 	}
 
-	private void helloResponse(ChannelHandlerContext ctx) {
-		//ctx.executor().schedule(new Runnable, 10, TimeUnit.SECONDS);
-		FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, 
-				Unpooled.copiedBuffer("Hello World>", CharsetUtil.UTF_8));
-        response.headers().set(HttpHeaders.Names.CONTENT_TYPE, "text/plain");
-		System.out.println(response);
-		try {
-			ctx.writeAndFlush(response).sync();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+	private void statusResponse(ChannelHandlerContext ctx) {
+		System.out.println("Channels: " + ServerStatistics.getInstance().getChannelsCount());
 		
 	}
+
+	private void pageNotFoundResponse(ChannelHandlerContext ctx) {
+		FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND,  
+				Unpooled.copiedBuffer("404 Sorry, but this page not found.", CharsetUtil.UTF_8));
+        response.headers().set(HttpHeaders.Names.CONTENT_TYPE, "text/html");
+		ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+		System.out.println(response);
+	}
+
+	private void helloResponse(ChannelHandlerContext ctx) {
+		ctx.executor().schedule(new Runnable() {
+			
+			@Override
+			public void run() {
+				FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, 
+						Unpooled.copiedBuffer("Hello World", CharsetUtil.UTF_8));
+		        response.headers().set(HttpHeaders.Names.CONTENT_TYPE, "text/html");
+				ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+			}	
+			
+		}, 10, TimeUnit.SECONDS);
+	}
 	
-	private static void sendRedirectResponse(ChannelHandlerContext ctx, String newUri) {
+	private void sendRedirectResponse(ChannelHandlerContext ctx, String newUri) {
         FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.FOUND);
         response.headers().set(HttpHeaders.Names.LOCATION, newUri);
         ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
     } 
 
 
-	
+	@Override
+	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+		cause.printStackTrace();
+		ctx.close();
+	}
 
 }

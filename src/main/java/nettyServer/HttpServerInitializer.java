@@ -13,10 +13,11 @@ public class HttpServerInitializer extends ChannelInitializer<SocketChannel> {
 		ChannelPipeline pipeline = ch.pipeline();
 		//pipeline.addFirst("traffic", new TrafficHandler());
 		pipeline.addFirst("serverCodec", new HttpServerCodec());
-		pipeline.addLast("aggregator", new HttpObjectAggregator(512 * 1024));
+		pipeline.addLast("aggregator", new HttpObjectAggregator(1048576));
 		
 		pipeline.addLast("requestHandler", new HttpRequestHandler());
 		
+		ServerStatistics.getInstance().addChannel(ch);
 	}
 	
 }
