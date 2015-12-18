@@ -1,10 +1,6 @@
 package nettyServer;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Queue;
@@ -12,16 +8,14 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
-
 import io.netty.channel.Channel;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
-import io.netty.channel.socket.SocketChannel;
-import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.util.concurrent.GlobalEventExecutor;
 
 /**
- * Singelton pattern double checked locking & volatile
+ * This class contains all statistics. It is build with
+ * double checked locking & volatile Singelton pattern.
  * 
  * @author rk
  *
@@ -30,22 +24,46 @@ public class ServerStatistics {
 
 	private volatile static ServerStatistics instance;
 	
-	private ChannelGroup channels;
-	//private Map<Integer, FullHttpRequest> requests;
+	/**
+	 * All current active (open) connections. When Channel becomes inactive it
+	 * removes from this group automatically.
+	 * 
+	 * @see {@link ChannelGroup}
+	 */
+	private ChannelGroup connections;
+	
+	/**
+	 * Log that contains not more than 16 records.
+	 */
 	private Queue<ConnectionInfo> connectionsLog;
+	
+	/**
+	 * The number of all requests
+	 */
 	private AtomicLong allRequests;
-	private Map<String, Integer> redirectsByUrlCount;
-	private Map<String, IpInfo> allUniqueIps;
+	
+	/**
+	 * Stores all redirected URL's and number of redirection (key = URL)
+	 */
+	private Map<String, Integer> redirectsStatistics;
+	
+	/**
+	 * Contains information about ip (ip, number of requests, the time of last request). (key = ip)
+	 * 
+	 * @see {@link IpInfo}
+	 */
+	private Map<String, IpInfo> ipStatistics;
+	
+	private Set<ConnectionInfo> uniqueRequests;
 	
 	
 	private ServerStatistics() {
-		channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
-		//channels = new DefaultChannelGroup(null);
-		//requests = Collections.synchronizedMap(new HashMap<>());
+		connections = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
 		connectionsLog = new ConcurrentLinkedQueue<>();
 		allRequests = new AtomicLong(0);
-		redirectsByUrlCount = new ConcurrentHashMap<>();
-		allUniqueIps = new ConcurrentHashMap<>();
+		redirectsStatistics = new ConcurrentHashMap<>();
+		ipStatistics = new ConcurrentHashMap<>();
+		uniqueRequests = Collections.synchronizedSet(new HashSet<ConnectionInfo>());
 	}
 	
 	public static ServerStatistics getInstance() {
@@ -58,60 +76,101 @@ public class ServerStatistics {
 		}
 		return instance;
 	}
-	
 
-	public int getChannelsCount() {
-		return channels.size();
-	}
-
+	/**
+	 * Adds channel to {@link ChannelGroup}.
+	 * @param channel - channel to be added
+	 * @return true if channel was added successful
+	 * 
+	 * @see ChannelGroup add(Channel ch) method
+	 */
 	public boolean addChannel(Channel channel) {
-		//System.out.println((Channel[])channels.toArray());
-		return channels.add(channel);		
+		return connections.add(channel);		
 	}
 	
-	public synchronized boolean addConectionToLog(ConnectionInfo info) {
-		while(connectionsLog.size() >= 15) connectionsLog.poll();
-		return connectionsLog.offer(info);
+	/**
+	 * Stores the last 16 added ConnectionInfo and collects unique requests (one per IP).
+	 * @param info ConnectionInfo to be stored.
+	 * 
+	 * @see {@link ConnectionInfo}
+	 */
+	public void addConectionToLog(ConnectionInfo info) {
+		uniqueRequests.add(info);
+		connectionsLog.offer(info);
+		while(connectionsLog.size() > 16) connectionsLog.poll();
 	}
 	
+	/**
+	 * Increments the total number of requests
+	 */
 	public void addRequest() {
 		allRequests.incrementAndGet();
 	}
 
-	public void addRedirectResponse(String url) {
-		if(redirectsByUrlCount.containsKey(url)) {
-			int count = redirectsByUrlCount.get(url);
-			redirectsByUrlCount.put("url", ++count);
+	/**
+	 * Increment the total number of redirects made to this URL
+	 * or stores URL if it is the first redirection.
+	 * @param url
+	 */
+	public synchronized void addRedirectResponse(String url) {
+		if(redirectsStatistics.containsKey(url)) {
+			int count = redirectsStatistics.get(url);
+			redirectsStatistics.put(url, ++count);
 			return;
 		}
-		redirectsByUrlCount.put("url", 1);
+		redirectsStatistics.put(url, 1);
 	}
 	
-	public void addIp(String ip) {
-		if(allUniqueIps.containsKey(ip)) {
-			IpInfo ipInfo = allUniqueIps.get(ip);
+	/**
+	 * Stores the information about ip or updates it.
+	 * @param ip
+	 * 
+	 * @see {@link IpInfo}, IpInfo update() method
+	 */
+	public synchronized void addIp(String ip) {
+		if(ipStatistics.containsKey(ip)) {
+			IpInfo ipInfo = ipStatistics.get(ip);
 			ipInfo.update();
 			return;
 		}
-		allUniqueIps.put(ip, new IpInfo(ip));
+		ipStatistics.put(ip, new IpInfo(ip));
 	}
 	
+	/**
+	 * @return the number of open connections
+	 */
+	public int getOpenConnectionsCount() {
+		return connections.size();
+	}
+	
+	/**
+	 * Makes statistics for status reponse.
+	 * @return string representation of html status page
+	 */
 	public String makeStatistics() {
-		try {
-			File file = new File("resources/status.html");
-			FileReader fr = new FileReader(file);
-			char[] chars = new char[(int)file.length()];
-			fr.read(chars);
-			String page = new String(chars);
-			page = page.replace("totalRequestCount", allRequests.toString());
-			page = page.replace("uniqueRequestCount", 5+"");
-			page = page.replace("connectionsCurrentlyOpened", getChannelsCount()+"");
-			return page;
-		} catch (Exception e) {
-			e.printStackTrace();
-			return null;
-		}
-		 //TODO
-		
+		return StatusPage.getStatusPage();
+	}
+
+	/**
+	 * @return the number of all requests
+	 */
+	public long getAllRequests() {
+		return allRequests.get();
+	}
+
+	public Queue<ConnectionInfo> getConnectionsLog() {
+		return connectionsLog;
+	}
+
+	public Map<String, Integer> getRedirectsStatistics() {
+		return redirectsStatistics;
+	}
+
+	public Map<String, IpInfo> getIpStatistics() {
+		return ipStatistics;
+	}	
+	
+	public int getUniqueRequestsCount() {
+		return uniqueRequests.size();
 	}
 }

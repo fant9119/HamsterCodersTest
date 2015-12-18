@@ -17,7 +17,36 @@
   </dependencies>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compilier.source>1.8</maven.compilier.source>
-    <maven.compilier.target>1.8</maven.compilier.target>
+    <maven.compilier.source>1.7</maven.compilier.source>
+    <maven.compilier.target>1.7</maven.compilier.target>
   </properties>
+  <build>
+  <plugins>
+	  <plugin>
+	    <artifactId>maven-assembly-plugin</artifactId>
+	    <executions>
+	      <execution>
+	        <phase>package</phase>
+	        <goals>
+	          <goal>single</goal>
+	        </goals>
+	      </execution>
+	    </executions>
+	    <configuration>
+	
+	      <archive>
+	      <manifest>
+	        <addClasspath>true</addClasspath>
+	        <mainClass>nettyServer.HttpServer</mainClass>
+	      </manifest>
+	      </archive>
+	
+	      <descriptorRefs>
+	        <descriptorRef>jar-with-dependencies</descriptorRef>
+	      </descriptorRefs>
+	
+	    </configuration>
+	  </plugin>
+	  </plugins>
+  </build>
 </project>

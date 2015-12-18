@@ -32,23 +32,12 @@ public class HttpServer {
 				.childHandler(new HttpServerInitializer());
 			
 			ChannelFuture future = bootstrap.bind(new InetSocketAddress(port)).sync();
-/*			future.addListener(new ChannelFutureListener() {	
-				@Override
-				public void operationComplete(ChannelFuture future) throws Exception {
-					if(future.isSuccess()) {
-						System.out.println("Server is bounded to port " + port );
-					} else {
-						System.err.println("Bound attempt failed!");
-						future.cause().printStackTrace();
-					}
-				}
-			});*/
 			System.out.println("Server starts at port: " + port);
 			future.channel().closeFuture().sync();
 		} finally {
 			bossGroup.shutdownGracefully();
 			workerGroup.shutdownGracefully();
-			System.out.println("Server is shutted down!!!");
+			System.err.println("Server is shutted down!!!");
 		}
 		
 	}

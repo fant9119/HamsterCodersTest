@@ -7,28 +7,31 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
+import io.netty.handler.traffic.AbstractTrafficShapingHandler;
 
 public class HttpServerInitializer extends ChannelInitializer<SocketChannel> {
 
 	@Override
-	protected void initChannel(SocketChannel ch) throws Exception {
-		ChannelPipeline pipeline = ch.pipeline();
-		pipeline.addFirst("statistic", new StatisticHandler(500));//Look for new Number
-		pipeline.addFirst("serverCodec", new HttpServerCodec());
-		pipeline.addLast("aggregator", new HttpObjectAggregator(1048576));
+	protected void initChannel(final SocketChannel ch) throws Exception {
+		System.out.println(ch.remoteAddress().getAddress() + " - connected to server.");
 		
+		ChannelPipeline pipeline = ch.pipeline();
+		pipeline.addFirst("statistic", new StatisticsHandler(AbstractTrafficShapingHandler.DEFAULT_CHECK_INTERVAL));
+		pipeline.addFirst("serverCodec", new HttpServerCodec());
+		pipeline.addLast("aggregator", new HttpObjectAggregator(1048576));	
 		pipeline.addLast("requestHandler", new HttpRequestHandler());
+		
 		ServerStatistics.getInstance().addChannel(ch);
-/*		ChannelFuture future = ch.closeFuture();
+		
+		ChannelFuture future = ch.closeFuture();
 		future.addListener(new ChannelFutureListener() {
 
 			@Override
 			public void operationComplete(ChannelFuture future) throws Exception {
-				ch.
-				
+				System.out.println(ch.remoteAddress().getAddress() + " - disconnected from server.");
 			}
 			
-		})*/
+		});
 	}
 	
 }
