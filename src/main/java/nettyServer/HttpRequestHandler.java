@@ -13,6 +13,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.handler.codec.http.QueryStringDecoder;
+import io.netty.util.AttributeKey;
 import io.netty.util.CharsetUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
@@ -28,10 +29,14 @@ import java.util.regex.Pattern;
 
 @Sharable
 public class HttpRequestHandler extends SimpleChannelInboundHandler<HttpRequest> {
+	
+	private AttributeKey<ConnectionInfo> uriStat = AttributeKey.valueOf("uri");
 
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, HttpRequest msg) throws Exception {
+		ConnectionInfo info = ctx.channel().attr(uriStat).getAndRemove();
 		String uri = msg.getUri();
+		info.setUri(uri);
 		QueryStringDecoder splitter = new QueryStringDecoder(uri);
 		String path = splitter.path().toLowerCase();
 

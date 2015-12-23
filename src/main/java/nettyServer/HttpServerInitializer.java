@@ -16,8 +16,8 @@ public class HttpServerInitializer extends ChannelInitializer<SocketChannel> {
 		System.out.println(ch.remoteAddress().getAddress() + " - connected to server.");
 		
 		ChannelPipeline pipeline = ch.pipeline();
-		pipeline.addFirst("statistic", new StatisticsHandler(AbstractTrafficShapingHandler.DEFAULT_CHECK_INTERVAL));
-		pipeline.addFirst("serverCodec", new HttpServerCodec());
+		pipeline.addLast("statistic", new StatisticsHandler(AbstractTrafficShapingHandler.DEFAULT_CHECK_INTERVAL));
+		pipeline.addLast("serverCodec", new HttpServerCodec());
 		pipeline.addLast("aggregator", new HttpObjectAggregator(1048576));	
 		pipeline.addLast("requestHandler", new HttpRequestHandler());
 		
