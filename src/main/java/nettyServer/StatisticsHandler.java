@@ -20,7 +20,6 @@ public class StatisticsHandler extends ChannelTrafficShapingHandler {
 	public void channelActive(ChannelHandlerContext ctx) throws Exception {
 		super.channelActive(ctx);
 		statistics.addRequest();
-
 		statistics.addChannel(ctx.channel());
 
 		InetSocketAddress ip = (InetSocketAddress) ctx.channel().remoteAddress();
