@@ -33,7 +33,7 @@
 			      		</execution>
 			   		</executions>
 			    <configuration>
-			    	<finalName>netty-server-app</finalName>
+			    	<finalName>netty-server</finalName>
 					<archive>
 						<manifest>
 							<addClasspath>true</addClasspath>
