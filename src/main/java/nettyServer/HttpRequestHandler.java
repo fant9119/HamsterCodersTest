@@ -37,6 +37,7 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<HttpRequest>
 		ConnectionInfo info = ctx.channel().attr(uriStat).getAndRemove();
 		String uri = msg.getUri();
 		info.setUri(uri);
+		
 		QueryStringDecoder splitter = new QueryStringDecoder(uri);
 		String path = splitter.path().toLowerCase();
 

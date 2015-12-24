@@ -2,6 +2,8 @@ package nettyServer;
 
 import java.net.InetSocketAddress;
 import java.util.Date;
+
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.traffic.ChannelTrafficShapingHandler;
 import io.netty.util.AttributeKey;
@@ -19,15 +21,14 @@ public class StatisticsHandler extends ChannelTrafficShapingHandler {
 	@Override
 	public void channelActive(ChannelHandlerContext ctx) throws Exception {
 		super.channelActive(ctx);
+		Channel channel = ctx.channel();
 		statistics.addRequest();
-		statistics.addChannel(ctx.channel());
+		statistics.addChannel(channel);
 
-		InetSocketAddress ip = (InetSocketAddress) ctx.channel().remoteAddress();
+		InetSocketAddress ip = (InetSocketAddress)channel.remoteAddress();
 	    info.setSrcIp(ip.getHostName());
 	    statistics.addIp(ip.getHostName());
 	    ctx.channel().attr(uriStat).set(info);
-	    
-
 	}
 
     @Override

@@ -12,8 +12,9 @@ import io.netty.handler.traffic.AbstractTrafficShapingHandler;
 public class HttpServerInitializer extends ChannelInitializer<SocketChannel> {
 
 	@Override
-	protected void initChannel(final SocketChannel ch) throws Exception {
-		System.out.println(ch.remoteAddress().getAddress() + " - connected to server.");
+	protected void initChannel(SocketChannel ch) throws Exception {
+		final String ip = ch.remoteAddress().getAddress().getHostAddress();
+		System.out.println(ip + " - connected to server.");
 		
 		ChannelPipeline pipeline = ch.pipeline();
 		pipeline.addLast("statistic", new StatisticsHandler(AbstractTrafficShapingHandler.DEFAULT_CHECK_INTERVAL));
@@ -21,17 +22,14 @@ public class HttpServerInitializer extends ChannelInitializer<SocketChannel> {
 		pipeline.addLast("aggregator", new HttpObjectAggregator(1048576));	
 		pipeline.addLast("requestHandler", new HttpRequestHandler());
 		
-		ServerStatistics.getInstance().addChannel(ch);
-		
 		ChannelFuture future = ch.closeFuture();
 		future.addListener(new ChannelFutureListener() {
 
 			@Override
 			public void operationComplete(ChannelFuture future) throws Exception {
-				System.out.println(ch.remoteAddress().getAddress() + " - disconnected from server.");
+				System.out.println(ip + " - disconnected from server.");
 			}
 			
 		});
 	}
-	
 }

@@ -39,7 +39,6 @@ public class HttpServer {
 			workerGroup.shutdownGracefully();
 			System.err.println("Server is shutted down!!!");
 		}
-		
 	}
 
 	public static void main(String[] args) {
